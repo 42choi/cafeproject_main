@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영수증 - 주문번호 {{ order.id }}</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+            color: black;
+            line-height: 1.4;
+        }
+        
+        .receipt {
+            max-width: 300px;
+            margin: 0 auto;
+            border: 2px solid #000;
+            padding: 15px;
+            background-color: white;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .store-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .store-info {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .order-info {
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .order-info div {
+            margin-bottom: 3px;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        
+        .items-table th,
+        .items-table td {
+            padding: 3px 0;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .items-table th {
+            font-weight: bold;
+            border-bottom: 2px solid #000;
+        }
+        
+        .item-name {
+            width: 60%;
+        }
+        
+        .item-qty {
+            width: 15%;
+            text-align: center;
+        }
+        
+        .item-price {
+            width: 25%;
+            text-align: right;
+        }
+        
+        .special-request {
+            font-size: 10px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .total-section {
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            margin-top: 15px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .final-total {
+            font-weight: bold;
+            font-size: 16px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #000;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .barcode {
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                background-color: white;
+            }
+            
+            .print-button {
+                display: none;
+            }
+            
+            .receipt {
+                border: none;
+                max-width: none;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">
+        🖨️ 인쇄하기
+    </button>
+    
+    <div class="receipt">
+        <!-- Header -->
+        <div class="header">
+            <div class="store-name">☕ 카페 주문 시스템</div>
+            <div class="store-info">
+                TEL: 02-1234-5678<br>
+                주소: 서울시 강남구 테헤란로 123
+            </div>
+        </div>
+        
+        <!-- Order Information -->
+        <div class="order-info">
+            <div><strong>주문번호:</strong> {{ order.id }}</div>
+            <div><strong>주문일시:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+            <div><strong>고객명:</strong> {{ order.customer_name }}</div>
+            <div><strong>배달장소:</strong> {{ order.delivery_location }}</div>
+            {% if order.delivery_time %}
+            <div><strong>배달시간:</strong> {{ order.delivery_time }}</div>
+            {% endif %}
+            <div><strong>주문상태:</strong> 
+                {% if order.status == 'pending' %}대기중
+                {% elif order.status == 'preparing' %}준비중
+                {% elif order.status == 'ready' %}준비완료
+                {% elif order.status == 'completed' %}완료
+                {% elif order.status == 'cancelled' %}취소
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Order Items -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th class="item-name">상품명</th>
+                    <th class="item-qty">수량</th>
+                    <th class="item-price">금액</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.order_items %}
+                <tr>
+                    <td class="item-name">
+                        {{ item.menu.name }}
+                        {% if item.temperature %}
+                        <br><small>({{ '아이스' if item.temperature == 'ice' else '핫' }})</small>
+                        {% endif %}
+                        {% if item.special_request %}
+                        <br><div class="special-request">{{ item.special_request }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="item-qty">{{ item.quantity }}</td>
+                    <td class="item-price">{{ "{:,}".format(item.subtotal|int) }}원</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Special Request -->
+        {% if order.order_request %}
+        <div style="margin-bottom: 15px; padding: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff;">
+            <strong>주문 요청사항:</strong><br>
+            {{ order.order_request }}
+        </div>
+        {% endif %}
+        
+        <!-- Total Section -->
+        <div class="total-section">
+            <div class="total-row">
+                <span>상품금액:</span>
+                <span>{{ "{:,}".format(order.total_amount) }}원</span>
+            </div>
+            <div class="total-row">
+                <span>배달비:</span>
+                <span>0원</span>
+            </div>
+            <div class="total-row">
+                <span>할인:</span>
+                <span>0원</span>
+            </div>
+            <div class="total-row final-total">
+                <span>총 결제금액:</span>
+                <span>{{ "{:,}".format(order.total_amount) }}원</span>
+            </div>
+        </div>
+        
+        <!-- Barcode -->
+        <div class="barcode">
+            ||| {{ order.id|string|center(10, '0') }} |||
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div>이용해 주셔서 감사합니다!</div>
+            <div>카페 주문 시스템 v1.0</div>
+            <div>{{ order.order_date.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        </div>
+    </div>
+    
+    <script>
+        // 페이지 로드 시 자동 인쇄 대화상자 표시 (선택사항)
+        // window.onload = function() {
+        //     window.print();
+        // };
+        
+        // 뒤로가기 버튼 (ESC 키)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+</html> 

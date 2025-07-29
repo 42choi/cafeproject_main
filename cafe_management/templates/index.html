@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}카페 주문 관리 시스템 - 홈{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Hero Section -->
+            <div class="jumbotron bg-primary text-white text-center py-5 mb-5 rounded">
+                <div class="container">
+                    <h1 class="display-4">
+                        <i class="fas fa-coffee"></i> 
+                        환영합니다!
+                    </h1>
+                    <p class="lead">카페 주문 관리 시스템에 오신 것을 환영합니다.</p>
+                    <p>메뉴를 확인하고 주문하시거나, 관리자 페이지에서 시스템을 관리해보세요.</p>
+                </div>
+            </div>
+
+            <!-- Main Options -->
+            <div class="row g-4">
+                <!-- User Section -->
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body text-center p-5">
+                            <div class="mb-4">
+                                <i class="fas fa-user fa-4x text-success"></i>
+                            </div>
+                            <h3 class="card-title mb-3">고객 주문</h3>
+                            <p class="card-text text-muted mb-4">
+                                메뉴를 확인하고 주문해보세요.<br>
+                                다양한 음료와 디저트를 준비하고 있습니다.
+                            </p>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('user_menu') }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-utensils"></i> 메뉴 보기
+                                </a>
+                                <a href="{{ url_for('view_cart') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-shopping-cart"></i> 
+                                    장바구니 확인
+                                    {% if cart_count > 0 %}
+                                    <span class="badge bg-danger">{{ cart_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Section -->
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body text-center p-5">
+                            <div class="mb-4">
+                                <i class="fas fa-user-shield fa-4x text-warning"></i>
+                            </div>
+                            <h3 class="card-title mb-3">관리자</h3>
+                            <p class="card-text text-muted mb-4">
+                                매출 관리, 메뉴 관리, 주문 처리 등<br>
+                                시스템을 관리할 수 있습니다.
+                            </p>
+                            <div class="d-grid gap-2">
+                                {% if admin_logged_in %}
+                                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-tachometer-alt"></i> 관리자 대시보드
+                                </a>
+                                <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-sign-out-alt"></i> 로그아웃
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('admin_login') }}" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-sign-in-alt"></i> 관리자 로그인
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="row mt-5">
+                <div class="col-12">
+                    <h2 class="text-center mb-4">시스템 특징</h2>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="text-center">
+                        <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
+                        <h5>모바일 친화적</h5>
+                        <p class="text-muted">스마트폰, 태블릿에서도 편리하게 주문할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="text-center">
+                        <i class="fas fa-shopping-cart fa-3x text-success mb-3"></i>
+                        <h5>장바구니 기능</h5>
+                        <p class="text-muted">여러 메뉴를 담고 한 번에 주문할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                        <h5>매출 관리</h5>
+                        <p class="text-muted">실시간 매출 현황과 통계를 확인할 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats (if admin logged in) -->
+            {% if admin_logged_in %}
+            <div class="row mt-5">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar"></i> 빠른 통계
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="border-end">
+                                        <h4 class="text-primary">오늘</h4>
+                                        <p class="mb-0">매출 현황</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="border-end">
+                                        <h4 class="text-success">메뉴</h4>
+                                        <p class="mb-0">관리</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="border-end">
+                                        <h4 class="text-warning">주문</h4>
+                                        <p class="mb-0">처리</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h4 class="text-info">통계</h4>
+                                    <p class="mb-0">분석</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .jumbotron {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+    }
+    
+    .card {
+        transition: transform 0.2s ease-in-out;
+        border-radius: 15px;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .fa-4x {
+        color: #f8f9fa;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %} 

@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}관리자 대시보드 - 카페 주문 시스템{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-tachometer-alt"></i> 관리자 대시보드
+                </h2>
+                <div class="text-muted">
+                    <i class="fas fa-calendar"></i> {{ moment().format('YYYY년 MM월 DD일') }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                오늘 매출
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,}".format(today_sales) }}원
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-won-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                오늘 주문 수
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ today_order_count }}건
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                평균 주문 금액
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if today_order_count > 0 %}
+                                {{ "{:,}".format((today_sales / today_order_count)|int) }}원
+                                {% else %}
+                                0원
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calculator fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                대기 중인 주문
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <span id="pendingOrderCount">-</span>건
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt"></i> 빠른 작업
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_menu', category='add') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-plus"></i> 새 메뉴 추가
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin_sales') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-chart-bar"></i> 매출 분석
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('export_all_orders') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-download"></i> 주문 내역 다운로드
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-warning btn-block" onclick="refreshOrders()">
+                                <i class="fas fa-sync"></i> 주문 새로고침
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Orders -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> 최근 주문 현황
+                    </h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshOrders()">
+                            <i class="fas fa-sync"></i> 새로고침
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="ordersTable">
+                            <thead>
+                                <tr>
+                                    <th>주문번호</th>
+                                    <th>고객명</th>
+                                    <th>배달장소</th>
+                                    <th>주문금액</th>
+                                    <th>상태</th>
+                                    <th>주문시간</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr data-order-id="{{ order.id }}">
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ order.customer_name }}</td>
+                                    <td>{{ order.delivery_location }}</td>
+                                    <td>{{ "{:,}".format(order.total_amount) }}원</td>
+                                    <td>
+                                        <select class="form-select form-select-sm status-select" 
+                                                onchange="updateOrderStatus({{ order.id }}, this.value)">
+                                            <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>대기중</option>
+                                            <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>준비중</option>
+                                            <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>준비완료</option>
+                                            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>완료</option>
+                                            <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>취소</option>
+                                        </select>
+                                    </td>
+                                    <td>{{ order.order_date.strftime('%H:%M:%S') }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('print_receipt', order_id=order.id) }}" 
+                                               class="btn btn-outline-info" target="_blank">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteOrder({{ order.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if not recent_orders %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">최근 주문이 없습니다</h5>
+                        <p class="text-muted">새로운 주문이 들어오면 여기에 표시됩니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+    
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+    
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+    
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+    
+    .text-xs {
+        font-size: 0.7rem;
+    }
+    
+    .text-gray-300 {
+        color: #dddfeb !important;
+    }
+    
+    .text-gray-800 {
+        color: #5a5c69 !important;
+    }
+    
+    .card {
+        border-radius: 10px;
+    }
+    
+    .btn-block {
+        width: 100%;
+    }
+    
+    .status-select {
+        min-width: 120px;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #5a5c69;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 주문 상태 업데이트
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`/admin/update_order_status/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', '주문 상태가 업데이트되었습니다.');
+        } else {
+            showAlert('error', result.message);
+        }
+    } catch (error) {
+        showAlert('error', '상태 업데이트 중 오류가 발생했습니다.');
+    }
+}
+
+// 주문 삭제
+async function deleteOrder(orderId) {
+    if (!confirm('이 주문을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/delete_order/${orderId}`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.querySelector(`tr[data-order-id="${orderId}"]`).remove();
+            showAlert('success', '주문이 삭제되었습니다.');
+        } else {
+            showAlert('error', result.message);
+        }
+    } catch (error) {
+        showAlert('error', '주문 삭제 중 오류가 발생했습니다.');
+    }
+}
+
+// 주문 목록 새로고침
+async function refreshOrders() {
+    try {
+        const response = await fetch('/admin/get_recent_orders');
+        const result = await response.json();
+        
+        if (result.success) {
+            updateOrdersTable(result.orders);
+            updatePendingCount(result.orders);
+            showAlert('success', '주문 목록이 새로고침되었습니다.');
+        } else {
+            showAlert('error', result.message);
+        }
+    } catch (error) {
+        showAlert('error', '새로고침 중 오류가 발생했습니다.');
+    }
+}
+
+// 주문 테이블 업데이트
+function updateOrdersTable(orders) {
+    const tbody = document.querySelector('#ordersTable tbody');
+    tbody.innerHTML = '';
+    
+    if (orders.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">최근 주문이 없습니다</h5>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    orders.forEach(order => {
+        const row = document.createElement('tr');
+        row.dataset.orderId = order.id;
+        row.innerHTML = `
+            <td>${order.id}</td>
+            <td>${order.customer_name}</td>
+            <td>${order.delivery_location}</td>
+            <td>${formatNumber(order.total_amount)}원</td>
+            <td>
+                <select class="form-select form-select-sm status-select" 
+                        onchange="updateOrderStatus(${order.id}, this.value)">
+                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>대기중</option>
+                    <option value="preparing" ${order.status === 'preparing' ? 'selected' : ''}>준비중</option>
+                    <option value="ready" ${order.status === 'ready' ? 'selected' : ''}>준비완료</option>
+                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>완료</option>
+                    <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>취소</option>
+                </select>
+            </td>
+            <td>${new Date(order.order_date).toLocaleTimeString()}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <a href="/admin/print_receipt/${order.id}" class="btn btn-outline-info" target="_blank">
+                        <i class="fas fa-print"></i>
+                    </a>
+                    <button class="btn btn-outline-danger" onclick="deleteOrder(${order.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 대기 중인 주문 수 업데이트
+function updatePendingCount(orders) {
+    const pendingCount = orders.filter(order => order.status === 'pending').length;
+    document.getElementById('pendingOrderCount').textContent = pendingCount;
+}
+
+// 숫자 포맷팅
+function formatNumber(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// 알림 메시지 표시
+function showAlert(type, message) {
+    const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // 3초 후 자동 제거
+    setTimeout(() => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 3000);
+}
+
+// 페이지 로드 시 대기 중인 주문 수 업데이트
+document.addEventListener('DOMContentLoaded', function() {
+    refreshOrders();
+    
+    // 30초마다 자동 새로고침
+    setInterval(refreshOrders, 30000);
+});
+</script>
+{% endblock %} 

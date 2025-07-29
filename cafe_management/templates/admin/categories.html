@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}카테고리 관리 - 카페 주문 시스템{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-tags"></i> 카테고리 관리
+                </h2>
+                <a href="{{ url_for('admin_menu') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> 메뉴 관리로 돌아가기
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Add Category Form -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus"></i> 새 카테고리 추가
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="addCategoryForm">
+                        <div class="mb-3">
+                            <label for="category_name" class="form-label">
+                                카테고리명 <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="category_name" name="category_name" 
+                                   required placeholder="예: 커피, 음료, 디저트">
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus"></i> 카테고리 추가
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>안내:</strong><br>
+                        • 카테고리명은 중복될 수 없습니다<br>
+                        • 카테고리 삭제 시 해당 메뉴들도 함께 삭제됩니다<br>
+                        • 신중하게 관리해주세요
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category List -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> 현재 카테고리 목록
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>카테고리명</th>
+                                    <th>메뉴 수</th>
+                                    <th>상태</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ category }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ category_counts[category] }}개</span>
+                                    </td>
+                                    <td>
+                                        {% if category_counts[category] > 0 %}
+                                        <span class="badge bg-success">사용중</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">비어있음</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('admin_menu', category=category) }}" 
+                                               class="btn btn-outline-info" title="메뉴 보기">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('add_menu') }}?category={{ category }}" 
+                                               class="btn btn-outline-success" title="메뉴 추가">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteCategory('{{ category }}', {{ category_counts[category] }})"
+                                                    title="카테고리 삭제">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tags fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">등록된 카테고리가 없습니다</h5>
+                        <p class="text-muted">첫 번째 카테고리를 추가해보세요.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if categories %}
+            <!-- Category Statistics -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> 카테고리 통계
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="categoryChart" width="300" height="200"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="list-group list-group-flush">
+                                {% for category in categories %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ category }}</span>
+                                    <div>
+                                        <span class="badge bg-primary rounded-pill">{{ category_counts[category] }}</span>
+                                        <small class="text-muted ms-2">
+                                            {% if category_counts.values()|sum > 0 %}
+                                            ({{ "%.1f"|format((category_counts[category] / category_counts.values()|sum * 100)) }}%)
+                                            {% else %}
+                                            (0%)
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">카테고리 삭제 확인</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>주의!</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+                <p id="deleteMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <form method="post" id="deleteCategoryForm" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> 삭제
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 10px;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #5a5c69;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,.075);
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// 카테고리 삭제
+function deleteCategory(categoryName, menuCount) {
+    const message = menuCount > 0 
+        ? `"${categoryName}" 카테고리를 삭제하시겠습니까?\n이 카테고리에 속한 ${menuCount}개의 메뉴도 함께 삭제됩니다.`
+        : `"${categoryName}" 카테고리를 삭제하시겠습니까?`;
+    
+    document.getElementById('deleteMessage').textContent = message;
+    document.getElementById('deleteCategoryForm').action = `/admin/categories/delete/${categoryName}`;
+    
+    new bootstrap.Modal(document.getElementById('deleteCategoryModal')).show();
+}
+
+// 폼 검증
+document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
+    const categoryName = document.getElementById('category_name').value.trim();
+    
+    if (!categoryName) {
+        e.preventDefault();
+        alert('카테고리명을 입력해주세요.');
+        return false;
+    }
+    
+    if (categoryName.length > 20) {
+        e.preventDefault();
+        alert('카테고리명은 20자 이내로 입력해주세요.');
+        return false;
+    }
+});
+
+// 차트 생성
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('categoryChart');
+    if (ctx) {
+        const categories = {{ categories|tojson }};
+        const counts = {{ category_counts.values()|list|tojson }};
+        
+        if (categories.length > 0) {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF',
+                            '#FF9F40',
+                            '#FF6384',
+                            '#C9CBCF'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %} 

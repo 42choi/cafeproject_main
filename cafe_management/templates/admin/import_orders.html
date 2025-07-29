@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}주문 데이터 가져오기 - 카페 주문 시스템{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-file-import"></i> 주문 데이터 가져오기
+                </h2>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> 대시보드로 돌아가기
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload"></i> Excel 파일 업로드
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="importForm">
+                        <div class="mb-4">
+                            <label for="file" class="form-label">
+                                <i class="fas fa-file-excel"></i> Excel 파일 선택 <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                   accept=".xlsx,.xls" required onchange="validateFile(this)">
+                            <div class="form-text">
+                                .xlsx 또는 .xls 형식의 파일만 업로드 가능합니다.
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> 파일 형식 안내</h6>
+                            <p class="mb-2">업로드할 Excel 파일은 다음 컬럼을 포함해야 합니다:</p>
+                            <ul class="mb-0">
+                                <li><strong>고객명</strong> - 주문한 고객의 이름</li>
+                                <li><strong>배달장소</strong> - 배달할 장소</li>
+                                <li><strong>배달시간</strong> - 희망 배달 시간 (선택사항)</li>
+                                <li><strong>총액</strong> - 주문 총 금액</li>
+                                <li><strong>상태</strong> - 주문 상태 (pending, preparing, ready, completed, cancelled)</li>
+                                <li><strong>주문요청</strong> - 특별 요청사항 (선택사항)</li>
+                            </ul>
+                        </div>
+                        
+                        <div id="filePreview" style="display: none;">
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>파일이 선택되었습니다:</strong>
+                                <span id="fileName"></span>
+                                <br>
+                                <small>파일 크기: <span id="fileSize"></span></small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    데이터 가져오기는 되돌릴 수 없습니다. 신중하게 진행해주세요.
+                                </small>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-secondary me-2" onclick="resetForm()">
+                                    <i class="fas fa-undo"></i> 초기화
+                                </button>
+                                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                                    <i class="fas fa-file-import"></i> 데이터 가져오기
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Help and Export Section -->
+        <div class="col-lg-4">
+            <!-- Template Download -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-download"></i> 템플릿 다운로드
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">올바른 형식의 템플릿 파일을 다운로드하여 사용하세요.</p>
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick="downloadTemplate()">
+                        <i class="fas fa-file-excel"></i> Excel 템플릿 다운로드
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Current Data Export -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-database"></i> 현재 데이터 내보내기
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">기존 주문 데이터를 Excel 파일로 내보낼 수 있습니다.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('export_all_orders') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-download"></i> 전체 주문 내역
+                        </a>
+                        <button class="btn btn-outline-info btn-sm" onclick="showPeriodExport()">
+                            <i class="fas fa-calendar"></i> 기간별 내역
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle"></i> 도움말
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>가져오기 절차</h6>
+                    <ol class="small">
+                        <li>Excel 템플릿을 다운로드합니다</li>
+                        <li>템플릿에 데이터를 입력합니다</li>
+                        <li>완성된 파일을 업로드합니다</li>
+                        <li>'데이터 가져오기' 버튼을 클릭합니다</li>
+                    </ol>
+                    
+                    <hr>
+                    
+                    <h6>주의사항</h6>
+                    <ul class="small">
+                        <li>파일 크기는 10MB 이하로 제한됩니다</li>
+                        <li>중복된 데이터도 추가됩니다</li>
+                        <li>잘못된 형식의 데이터는 건너뛰어집니다</li>
+                        <li>가져오기 전에 백업을 권장합니다</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>데이터를 가져오는 중...</h5>
+                    <p class="text-muted">잠시만 기다려주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Period Export Modal -->
+    <div class="modal fade" id="periodExportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">기간별 주문 내역 내보내기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{{ url_for('export_period_orders') }}">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="exportStartDate" class="form-label">시작일</label>
+                                <input type="date" class="form-control" id="exportStartDate" name="start_date">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="exportEndDate" class="form-label">종료일</label>
+                                <input type="date" class="form-control" id="exportEndDate" name="end_date">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download"></i> 내보내기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 10px;
+    }
+    
+    .form-control:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    #filePreview {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .btn-outline-primary:hover,
+    .btn-outline-success:hover,
+    .btn-outline-info:hover {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 파일 검증
+function validateFile(input) {
+    const file = input.files[0];
+    const submitBtn = document.getElementById('submitBtn');
+    const filePreview = document.getElementById('filePreview');
+    
+    if (file) {
+        // 파일 확장자 검증
+        const allowedTypes = ['.xlsx', '.xls'];
+        const fileName = file.name.toLowerCase();
+        const isValidType = allowedTypes.some(type => fileName.endsWith(type));
+        
+        if (!isValidType) {
+            alert('Excel 파일(.xlsx, .xls)만 업로드 가능합니다.');
+            input.value = '';
+            submitBtn.disabled = true;
+            filePreview.style.display = 'none';
+            return;
+        }
+        
+        // 파일 크기 검증 (10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert('파일 크기는 10MB 이하로 제한됩니다.');
+            input.value = '';
+            submitBtn.disabled = true;
+            filePreview.style.display = 'none';
+            return;
+        }
+        
+        // 파일 정보 표시
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        filePreview.style.display = 'block';
+        submitBtn.disabled = false;
+    } else {
+        filePreview.style.display = 'none';
+        submitBtn.disabled = true;
+    }
+}
+
+// 파일 크기 포맷팅
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 폼 초기화
+function resetForm() {
+    document.getElementById('importForm').reset();
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('submitBtn').disabled = true;
+}
+
+// 템플릿 다운로드
+function downloadTemplate() {
+    // Excel 템플릿 생성을 위한 데이터
+    const templateData = [
+        ['고객명', '배달장소', '배달시간', '총액', '상태', '주문요청'],
+        ['홍길동', '201호', '즉시', '15000', 'pending', '얼음 적게'],
+        ['김철수', '3층 회의실', '점심시간(12:00-13:00)', '8000', 'completed', ''],
+        ['이영희', '1층 로비', '10분 후', '12000', 'ready', '포장해주세요']
+    ];
+    
+    // CSV 형식으로 변환
+    const csvContent = templateData.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', '주문_데이터_템플릿.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// 기간별 내보내기 모달 표시
+function showPeriodExport() {
+    // 기본 날짜 설정 (지난 30일)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('exportStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('exportEndDate').value = today.toISOString().split('T')[0];
+    
+    new bootstrap.Modal(document.getElementById('periodExportModal')).show();
+}
+
+// 폼 제출 처리
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('file');
+    if (!fileInput.files[0]) {
+        alert('파일을 선택해주세요.');
+        return;
+    }
+    
+    // 확인 대화상자
+    if (!confirm('선택한 파일의 데이터를 가져오시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+        return;
+    }
+    
+    // 진행 상황 모달 표시
+    const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+    progressModal.show();
+    
+    // 폼 제출
+    const formData = new FormData(this);
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        progressModal.hide();
+        if (response.ok) {
+            return response.text();
+        }
+        throw new Error('Network response was not ok');
+    })
+    .then(html => {
+        // 성공 시 페이지 새로고침 또는 리다이렉트
+        window.location.reload();
+    })
+    .catch(error => {
+        progressModal.hide();
+        alert('파일 업로드 중 오류가 발생했습니다: ' + error.message);
+    });
+});
+
+// 드래그 앤 드롭 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('file');
+    const formBody = document.querySelector('.card-body');
+    
+    // 드래그 오버 이벤트
+    formBody.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('bg-light');
+    });
+    
+    // 드래그 리브 이벤트
+    formBody.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('bg-light');
+    });
+    
+    // 드롭 이벤트
+    formBody.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('bg-light');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            validateFile(fileInput);
+        }
+    });
+});
+</script>
+{% endblock %} 

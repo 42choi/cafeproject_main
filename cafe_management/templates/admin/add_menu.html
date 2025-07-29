@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}메뉴 추가 - 카페 주문 시스템{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-plus"></i> 새 메뉴 추가
+                </h2>
+                <a href="{{ url_for('admin_menu') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> 메뉴 관리로 돌아가기
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="addMenuForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="fas fa-utensils"></i> 메뉴명 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           required placeholder="메뉴 이름을 입력하세요">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">
+                                        <i class="fas fa-tags"></i> 카테고리 <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="">카테고리를 선택하세요</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">
+                                        새 카테고리는 <a href="{{ url_for('admin_categories') }}">카테고리 관리</a>에서 추가할 수 있습니다.
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="price" class="form-label">
+                                        <i class="fas fa-won-sign"></i> 가격 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="price" name="price" 
+                                               required min="0" step="100" placeholder="0">
+                                        <span class="input-group-text">원</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="temperature_option" class="form-label">
+                                        <i class="fas fa-thermometer-half"></i> 온도 옵션
+                                    </label>
+                                    <select class="form-select" id="temperature_option" name="temperature_option">
+                                        <option value="both" selected>아이스/핫 둘 다</option>
+                                        <option value="ice">아이스만</option>
+                                        <option value="hot">핫만</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="image" class="form-label">
+                                        <i class="fas fa-image"></i> 메뉴 이미지
+                                    </label>
+                                    <input type="file" class="form-control" id="image" name="image" 
+                                           accept="image/*" onchange="previewImage(this)">
+                                    <div class="form-text">
+                                        PNG, JPG, JPEG, GIF 형식, 최대 16MB
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div id="imagePreview" class="text-center" style="display: none;">
+                                        <img id="previewImg" src="" alt="미리보기" 
+                                             class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="removeImage()">
+                                                <i class="fas fa-times"></i> 이미지 제거
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fas fa-align-left"></i> 메뉴 설명
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="4"
+                                    placeholder="메뉴에 대한 설명을 입력하세요 (선택사항)"></textarea>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    <span class="text-danger">*</span> 표시된 항목은 필수입니다.
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('admin_menu') }}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times"></i> 취소
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> 메뉴 추가
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Help Card -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle"></i> 도움말
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>메뉴 추가 가이드</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            <strong>메뉴명:</strong> 고객에게 표시될 이름
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            <strong>카테고리:</strong> 메뉴를 분류할 카테고리
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            <strong>가격:</strong> 100원 단위로 입력
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            <strong>온도 옵션:</strong> 음료의 경우 온도 선택
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success"></i>
+                            <strong>이미지:</strong> 메뉴를 잘 보여주는 사진
+                        </li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <h6>이미지 업로드 팁</h6>
+                    <ul class="list-unstyled small">
+                        <li>• 정사각형 비율 권장</li>
+                        <li>• 밝고 선명한 이미지</li>
+                        <li>• 메뉴가 중앙에 위치</li>
+                        <li>• 최대 16MB까지 업로드 가능</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Preview Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-eye"></i> 미리보기
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="card menu-preview-card">
+                        <div id="previewImageContainer" class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                             style="height: 150px;">
+                            <i class="fas fa-image fa-2x text-muted"></i>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-title" id="previewName">메뉴명</h6>
+                            <p class="card-text text-muted small" id="previewDescription">메뉴 설명</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h6 text-primary mb-0" id="previewPrice">0원</span>
+                                <small class="text-muted" id="previewCategory">카테고리</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 10px;
+    }
+    
+    .menu-preview-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: none;
+    }
+    
+    .menu-preview-card .card-body {
+        padding: 1rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    #imagePreview {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .img-thumbnail {
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 이미지 미리보기
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+            
+            // 미리보기 카드 이미지 업데이트
+            const previewContainer = document.getElementById('previewImageContainer');
+            previewContainer.innerHTML = `<img src="${e.target.result}" alt="미리보기" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">`;
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 이미지 제거
+function removeImage() {
+    document.getElementById('image').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    
+    // 미리보기 카드 이미지 초기화
+    const previewContainer = document.getElementById('previewImageContainer');
+    previewContainer.innerHTML = '<i class="fas fa-image fa-2x text-muted"></i>';
+}
+
+// 실시간 미리보기 업데이트
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('name');
+    const categorySelect = document.getElementById('category');
+    const priceInput = document.getElementById('price');
+    const descriptionTextarea = document.getElementById('description');
+    
+    nameInput.addEventListener('input', function() {
+        document.getElementById('previewName').textContent = this.value || '메뉴명';
+    });
+    
+    categorySelect.addEventListener('change', function() {
+        document.getElementById('previewCategory').textContent = this.value || '카테고리';
+    });
+    
+    priceInput.addEventListener('input', function() {
+        const price = parseInt(this.value) || 0;
+        document.getElementById('previewPrice').textContent = price.toLocaleString() + '원';
+    });
+    
+    descriptionTextarea.addEventListener('input', function() {
+        document.getElementById('previewDescription').textContent = this.value || '메뉴 설명';
+    });
+});
+
+// 폼 검증
+document.getElementById('addMenuForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const category = document.getElementById('category').value;
+    const price = document.getElementById('price').value;
+    
+    if (!name) {
+        e.preventDefault();
+        alert('메뉴명을 입력해주세요.');
+        document.getElementById('name').focus();
+        return false;
+    }
+    
+    if (!category) {
+        e.preventDefault();
+        alert('카테고리를 선택해주세요.');
+        document.getElementById('category').focus();
+        return false;
+    }
+    
+    if (!price || price <= 0) {
+        e.preventDefault();
+        alert('올바른 가격을 입력해주세요.');
+        document.getElementById('price').focus();
+        return false;
+    }
+    
+    // 로딩 상태 표시
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+    submitBtn.disabled = true;
+});
+
+// 숫자 입력 검증
+document.getElementById('price').addEventListener('input', function() {
+    let value = parseInt(this.value);
+    if (value < 0) {
+        this.value = 0;
+    }
+});
+</script>
+{% endblock %} 

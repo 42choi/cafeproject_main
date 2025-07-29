@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}메뉴 - 카페 주문 시스템{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Category Sidebar -->
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> 카테고리
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('user_menu') }}" 
+                       class="list-group-item list-group-item-action {% if not selected_category %}active{% endif %}">
+                        <i class="fas fa-th-large"></i> 전체 메뉴
+                    </a>
+                    {% for category in categories %}
+                    <a href="{{ url_for('user_menu', category=category) }}" 
+                       class="list-group-item list-group-item-action {% if selected_category == category %}active{% endif %}">
+                        <i class="fas fa-coffee"></i> {{ category }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Cart Summary -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shopping-cart"></i> 장바구니
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    <p class="card-text">
+                        {% if cart_count > 0 %}
+                        <span class="badge bg-primary fs-6">{{ cart_count }}개 상품</span>
+                        {% else %}
+                        <span class="text-muted">비어있음</span>
+                        {% endif %}
+                    </p>
+                    <a href="{{ url_for('view_cart') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i> 장바구니 보기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items -->
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-utensils"></i> 
+                    {% if selected_category %}
+                        {{ selected_category }} 메뉴
+                    {% else %}
+                        전체 메뉴
+                    {% endif %}
+                </h2>
+                <small class="text-muted">{{ menus|length }}개 상품</small>
+            </div>
+
+            {% if menus %}
+            <div class="row">
+                {% for menu in menus %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 menu-item {% if menu.is_soldout %}soldout{% endif %}">
+                        {% if menu.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + menu.image) }}" 
+                             class="card-img-top" alt="{{ menu.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                             style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        
+                        {% if menu.is_soldout %}
+                        <div class="soldout-overlay">
+                            <span class="soldout-text">품절</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ menu.name }}</h5>
+                            <p class="card-text text-muted small flex-grow-1">
+                                {{ menu.description or '맛있는 ' + menu.name + '입니다.' }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="h5 text-primary mb-0">{{ "{:,}".format(menu.price|int) }}원</span>
+                                <small class="text-muted">{{ menu.category }}</small>
+                            </div>
+                            
+                            {% if not menu.is_soldout %}
+                            <button type="button" class="btn btn-primary btn-add-cart" 
+                                    data-menu-id="{{ menu.id }}" 
+                                    data-menu-name="{{ menu.name }}"
+                                    data-menu-price="{{ menu.price }}"
+                                    data-temperature-option="{{ menu.temperature_option }}">
+                                <i class="fas fa-cart-plus"></i> 장바구니 추가
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn btn-secondary" disabled>
+                                <i class="fas fa-times"></i> 품절
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">메뉴가 없습니다</h4>
+                <p class="text-muted">
+                    {% if selected_category %}
+                    {{ selected_category }} 카테고리에 메뉴가 없습니다.
+                    {% else %}
+                    등록된 메뉴가 없습니다.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add to Cart Modal -->
+<div class="modal fade" id="addToCartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">장바구니에 추가</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addToCartForm">
+                <div class="modal-body">
+                    <input type="hidden" id="menuId" name="menu_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">선택한 메뉴</label>
+                        <div class="alert alert-light">
+                            <strong id="selectedMenuName"></strong>
+                            <span class="float-end" id="selectedMenuPrice"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="temperatureSection">
+                        <label class="form-label">온도 선택</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="temperature" id="ice" value="ice" checked>
+                            <label class="btn btn-outline-primary" for="ice">
+                                <i class="fas fa-snowflake"></i> 아이스
+                            </label>
+                            <input type="radio" class="btn-check" name="temperature" id="hot" value="hot">
+                            <label class="btn btn-outline-danger" for="hot">
+                                <i class="fas fa-fire"></i> 핫
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">수량</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" id="decreaseQty">-</button>
+                            <input type="number" class="form-control text-center" id="quantity" name="quantity" value="1" min="1" max="10">
+                            <button class="btn btn-outline-secondary" type="button" id="increaseQty">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="specialRequest" class="form-label">특별 요청사항</label>
+                        <textarea class="form-control" id="specialRequest" name="special_request" rows="3" 
+                                placeholder="예: 얼음 적게, 시럽 추가 등"></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>총 금액: <span id="totalPrice"></span>원</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cart-plus"></i> 장바구니에 추가
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .menu-item {
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .menu-item:hover:not(.soldout) {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .soldout {
+        opacity: 0.7;
+    }
+    
+    .soldout-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-weight: bold;
+        z-index: 10;
+    }
+    
+    .btn-add-cart {
+        transition: all 0.2s;
+    }
+    
+    .btn-add-cart:hover {
+        transform: scale(1.05);
+    }
+    
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let currentMenuPrice = 0;
+    
+    // 장바구니 추가 버튼 클릭
+    $('.btn-add-cart').click(function() {
+        const menuId = $(this).data('menu-id');
+        const menuName = $(this).data('menu-name');
+        const menuPrice = $(this).data('menu-price');
+        const temperatureOption = $(this).data('temperature-option');
+        
+        currentMenuPrice = menuPrice;
+        
+        $('#menuId').val(menuId);
+        $('#selectedMenuName').text(menuName);
+        $('#selectedMenuPrice').text(number_format(menuPrice) + '원');
+        
+        // 온도 옵션 처리
+        if (temperatureOption === 'ice') {
+            $('#hot').parent().hide();
+            $('#ice').prop('checked', true);
+        } else if (temperatureOption === 'hot') {
+            $('#ice').parent().hide();
+            $('#hot').prop('checked', true);
+        } else {
+            $('#ice').parent().show();
+            $('#hot').parent().show();
+            $('#ice').prop('checked', true);
+        }
+        
+        // 초기 수량 및 가격 설정
+        $('#quantity').val(1);
+        updateTotalPrice();
+        
+        $('#addToCartModal').modal('show');
+    });
+    
+    // 수량 조절
+    $('#decreaseQty').click(function() {
+        const qty = parseInt($('#quantity').val());
+        if (qty > 1) {
+            $('#quantity').val(qty - 1);
+            updateTotalPrice();
+        }
+    });
+    
+    $('#increaseQty').click(function() {
+        const qty = parseInt($('#quantity').val());
+        if (qty < 10) {
+            $('#quantity').val(qty + 1);
+            updateTotalPrice();
+        }
+    });
+    
+    $('#quantity').on('input', function() {
+        updateTotalPrice();
+    });
+    
+    // 총 가격 업데이트
+    function updateTotalPrice() {
+        const quantity = parseInt($('#quantity').val()) || 1;
+        const total = currentMenuPrice * quantity;
+        $('#totalPrice').text(number_format(total));
+    }
+    
+    // 장바구니 추가 폼 제출
+    $('#addToCartForm').submit(function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: '{{ url_for("add_to_cart") }}',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    $('#addToCartModal').modal('hide');
+                    
+                    // 장바구니 카운트 업데이트
+                    $('.navbar .badge').text(response.cart_count);
+                    $('.card-body .badge').text(response.cart_count + '개 상품');
+                    
+                    // 성공 메시지
+                    showAlert('success', response.message);
+                } else {
+                    showAlert('error', response.message);
+                }
+            },
+            error: function() {
+                showAlert('error', '장바구니 추가 중 오류가 발생했습니다.');
+            }
+        });
+    });
+    
+    // 알림 메시지 표시
+    function showAlert(type, message) {
+        const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('.container:first').prepend(alertHtml);
+        
+        // 3초 후 자동 제거
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 3000);
+    }
+    
+    // 숫자 포맷팅
+    function number_format(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+});
+</script>
+{% endblock %} 
